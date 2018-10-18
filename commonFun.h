@@ -1,3 +1,6 @@
+#ifndef _COMMNIFUN_H
+#define _COMMNIFUN_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,3 +19,5 @@ void HexStrToByte(const char* source, unsigned char* dest, int sourceLen);
 
 //字节流转换为十六进制字符串的另一种实现方式
 void Hex2Str(const char *source, char *dest, int sourceLen);
+
+#endif

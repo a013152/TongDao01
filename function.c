@@ -174,7 +174,7 @@ void testSaveJPG()
 	fseek(pf, 0L, SEEK_SET); //移动到文件头
 	fread(readBuf, flen, 1, pf); //读取全部内容
 	readBuf[flen] =0;  //结束字符
-	
+	fclose(pf);
 	
 	printf("a2.jpg len:%d  %s\n",flen, readBuf);
 	char *szFuntionHex = (char*)malloc(flen*2 +1);
@@ -183,38 +183,74 @@ void testSaveJPG()
 	szFuntionHex[flen*2] = 0;
 	printf("a2.jpg:%s\n",szFuntionHex);
 	
+	 
 
-	writeBuf = malloc(flen + 1);
-	HexStrToByte(szFuntionHex,writeBuf,flen*2);
-	writeBuf[flen] = 0;
-	printf("a3.txt:%s\n",writeBuf);
-	//比较内存中数据的大小
-	bool bSame = true;
-	for(int i = 0; i < flen+1; i++){
-		if(writeBuf[i] != readBuf[i])
-		{
-			bSame = false;
-			break;
-		}
-	}
-	if(bSame){
-		printf("two memory is same！ \n");
-	}   
-	else{
-		printf("two memory is different!11\n")  ;
-	}
-	
-	//保存到本地
-	
-	if ((pf = fopen("a3.jpg", "wb+")) == NULL){
-		printf("write a3.jpg fail！ \n");
-	}else{
+	// 使用CURL调用sendTransaction方法保存到 区块链上
 		
-		fwrite(writeBuf,flen,1,pf);
-	} 
+	CURL *curl;
+	curl = curl_easy_init();
+	// 设置目标url
+	curl_easy_setopt(curl, CURLOPT_URL, "127.0.0.1:8101");	
+	curl_easy_setopt(curl, CURLOPT_HEADER, 0);
+	struct curl_slist *headers = NULL;
+	headers = curl_slist_append(headers, "Content-type: application/json");
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);	
 	
-	free(writeBuf);
-	free(readBuf); 
+	if(BUFSIZE > (flen*2 + 230))
+	{ 
+		sprintf(send_data, "{\"method\":\"eth_sendTransaction\",\"params\":[{\"from\":\"0xf58c93ceaeffbb91f45c83022ade9cfe5ef19339\",\"to\":\"0xf58c93ceaeffbb91f45c83022ade9cfe5ef19339\",\"gas\":\"0xfffff\",\"data\":\"0x%s\"}],\"id\":1,\"jsonrpc\":\"2.0\"}",szFuntionHex);	
+		
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, send_data);
+		//对返回的数据进行操作的函数地址 
+	
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_callback);
+
+		//设置问非0表示本次操作为post  
+		curl_easy_setopt(curl, CURLOPT_POST, 1);
+		
+			// 执行操作
+		memset(receiveBuf, 0, BUFSIZE);
+		int res = curl_easy_perform(curl);
+		printf("res:%d, receiveBuf:%s\n",res, receiveBuf);
+	}else{
+		printf("File's langth : %d over Buf leng%d", flen*2 + 230 , BUFSIZE);
+	}	
+	curl_easy_cleanup(curl);
+	
+	
+	//
+
+	// writeBuf = malloc(flen + 1);
+	// HexStrToByte(szFuntionHex,writeBuf,flen*2);
+	// writeBuf[flen] = 0;
+	// printf("a3.jpg:%s\n",writeBuf);
+	// //比较内存中数据的大小
+	// bool bSame = true;
+	// for(int i = 0; i < flen+1; i++){
+		// if(writeBuf[i] != readBuf[i])
+		// {
+			// bSame = false;
+			// break;
+		// }
+	// }
+	// if(bSame){
+		// printf("two memory is same!\n");
+	// }   
+	// else{
+		// printf("two memory is different!11\n")  ;
+	// }
+	
+	// //保存到本地
+	
+	// if ((pf = fopen("a3.jpg", "wb+")) == NULL){
+		// printf("write a3.jpg fail！ \n");
+	// }else{
+		
+		// fwrite(writeBuf,flen,1,pf);
+	// } 
+	
+	// free(writeBuf);
+	//free(readBuf); 
 	
 }
 int main()

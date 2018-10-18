@@ -199,9 +199,9 @@ void testSaveJPG()
 	}
 	if(bSame){
 		printf("two memory is same！ \n");
-	}
+	}   
 	else{
-		printf("two memory is different!\n");
+		printf("two memory is different!11\n")  ;
 	}
 	
 	//保存到本地

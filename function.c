@@ -23,7 +23,7 @@ int curl_callback(void* buffer, size_t size, size_t nmemb, char * useless)
 	printf("recei buff size:%d \n",   (int)(size * nmemb)); 
 	if (nmemb > BUFSIZE)
 		printf("recei lenght too long\n");
-	strncpy(receiveBuf, buffer, nmemb);
+	strncpy(receiveBuf, buffer, size*nmemb);
 	return RES_SUCCESS;  
 }  
 
@@ -235,38 +235,113 @@ void testSaveJPG()
 	
 	//
 
-	// writeBuf = malloc(flen + 1);
-	// HexStrToByte(szFuntionHex,writeBuf,flen*2);
-	// writeBuf[flen] = 0;
-	// printf("a3.jpg:%s\n",writeBuf);
-	// //比较内存中数据的大小
-	// bool bSame = true;
-	// for(int i = 0; i < flen+1; i++){
-		// if(writeBuf[i] != readBuf[i])
-		// {
-			// bSame = false;
-			// break;
-		// }
-	// }
-	// if(bSame){
-		// printf("two memory is same!\n");
-	// }   
-	// else{
-		// printf("two memory is different!11\n")  ;
-	// }
+	
+	
+	free(szfuntionhex);
+	free(readbuf); 
+	
+}
+
+void readTransactionInput(const char* szTxID, char* buff)
+{
+	CURL *curl;
+	curl = curl_easy_init();
+	// 设置目标url
+	curl_easy_setopt(curl, CURLOPT_URL, "127.0.0.1:8101");	
+	curl_easy_setopt(curl, CURLOPT_HEADER, 0);
+	struct curl_slist *headers = NULL;
+	headers = curl_slist_append(headers, "Content-type: application/json");
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+	//设置发送数据  
+	
+	sprintf(send_data, "{\"method\":\"eth_getTransactionByHash\",\"params\":[\"%s\"],\"id\":1,\"jsonrpc\":\"2.0\"}",szTxID);	 
+	printf("send_data:%s\n", send_data);
+
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, send_data);
+	//对返回的数据进行操作的函数地址 
+	
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_callback);
+
+	//设置问非0表示本次操作为post  
+	curl_easy_setopt(curl, CURLOPT_POST, 1); 
+	
+	//设置超时时间
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT,5L);
+	
+	// 执行操作
+	memset(receiveBuf, 0, BUFSIZE);
+	
+	int res = curl_easy_perform(curl);
+	
+	//printf("res:%d, receiveBuf:%s\n",res, receiveBuf);
+	curl_easy_cleanup(curl); 
+	
+	
+	//解析json 里的 input 数据
+	cJSON * json = cJSON_Parse(receiveBuf);
+	char * json_data = NULL; //cJSON_Print(json);
+	if (json)
+	{	 
+		cJSON *resultObj = NULL;
+		resultObj = cJSON_GetObjectItem(json, "result");
+		if (resultObj){
+			
+			cJSON *inputObj = cJSON_GetObjectItem(resultObj, "input");
+			if(inputObj)
+			{
+				json_data = cJSON_Print(inputObj);
+				if(inputObj->type == cJSON_String)
+				{
+					//保存数据
+					int lenght_ = strlen(inputObj->valuestring);
+					if(BUFSIZE > lenght_){ 
+						strcpy(buff, inputObj->valuestring);
+						 buff[lenght_] = 0;
+						char * pdata = &buff[2];  //截取
+						cJSON_ReplaceItemInObject(resultObj,"input",cJSON_CreateString(pdata));  //用于代替resultObj对象中input元组的值 
+						inputObj = cJSON_GetObjectItem(resultObj, "input");
+						strcpy(buff, inputObj->valuestring);
+						printf("getInputData2:%s\n", buff);
+						
+					}
+					else {
+						printf("BUFSIZE:%d < lenght_%d\n", BUFSIZE,lenght_);
+					}
+				}else {
+					printf("input type is not string \n");
+				}
+			}else{
+				printf("input is null\n");
+			}
+			
+		}else{
+			printf("result is null\n");
+		}
+	}
+	else{
+		printf("json is  null\n");
+	} 
+}
+
+void saveToFile(char* fileName, char * pdata)
+{
+	FILE * pf = NULL;  
+	if ((pf = fopen(fileName, "wb+")) == NULL)
+	{
+		printf("can not open %s!\n",fileName);
+		return ;//exit( 0);
+	}
+	int flen = strlen(pdata); 
+	char *fileData = (char*)malloc(flen / 2 + 1);
+	HexStrToByte(pdata,fileData,flen);
+	fileData[flen / 2] = 0; 
 	
 	// //保存到本地
-	
-	// if ((pf = fopen("a3.jpg", "wb+")) == NULL){
-		// printf("write a3.jpg fail！ \n");
-	// }else{
-		
-		// fwrite(writeBuf,flen,1,pf);
-	// } 
-	
-	// free(writeBuf);
-	//free(readBuf); 
-	
+	if(fwrite(fileData,flen/2,1,pf)  == flen/2);
+		printf("write %s success!\n",fileName);
+	fclose(pf); 
+	 
 }
 int main()
 {
@@ -275,8 +350,12 @@ int main()
 
 	//testSaveFile(); 
 	
-	testSaveJPG();
+	//testSaveJPG();
 	
+	readTransactionInput("0x7eaece0907efad752cd2f13535391fd9b3d9dcc7dd2409d7a8d4cddf48875edc", receiveBuf);
+	//printf("getInputData:%s\n", receiveBuf);
+	saveToFile("a4.jpg", receiveBuf); 
+	 
 	return 0;
 
 }

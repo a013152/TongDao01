@@ -6,6 +6,11 @@
 #include <string.h>
 #include <ctype.h>
 
+typedef struct _stReadData{
+	unsigned int Offset;
+	char* pReceivBuf;
+}stReadData;
+
 //base64编码
 char *encode(const char *buf, const long size, char *base64Char);
 
@@ -26,5 +31,19 @@ void HexStrToByte(const char* source, unsigned char* dest, int sourceLen);
 //参数： 参数1 字节流原buff， 参数2 存放转化十六进制后的buff， 参数3 字节流原buff的长度， 
 //注意： 参数2申请的存放十六进制的buff长度需要大于或等于原buff的2倍。
 void Hex2Str(const char *source, char *dest, int sourceLen);
+
+//函数名称: printfCURLError
+//功能描述:获取curl的错误码对应的描述。
+//参数： 参数1 错误码， 参数2 存放描述的字符buff   
+void printfCURLError(int res, char* reslutStr);
+
+
+
+//    定义链表中的节点  
+typedef struct node  
+{  
+    char* member;           //    节点中的成员  
+    struct node *pNext;        //    指向下一个节点的指针  
+}Node,*pNode; 
 
 #endif
